@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #define ROM_SIZE 65536
-#define RAM_SIZE 65536
 
 /* Function header from print out ROM table to a file */
 void print_rom(int* ROM, FILE* f, int size);
@@ -24,7 +23,7 @@ int main(int argc, char* argv[]){
 	}
 	
 	/* Open ROM file for writing */
-	fROM = fopen("rom.mif", "w");
+	fROM = fopen("rom.vhd", "w");
 	
 	if(argc < 2){
 		/* No ASM file to assemble */
@@ -76,16 +75,44 @@ int main(int argc, char* argv[]){
 	fclose(fROM);
 }
 
-void print_rom(int* ROM, FILE* f, int size){
-	int i;
-	fprintf(f, "DEPTH = 65536;\n");
-	fprintf(f, "WIDTH = 16;\n");
-	fprintf(f, "ADDRESS_RADIX = HEX;\n");
-	fprintf(f, "DATA_RADIX = HEX;\n");
-	fprintf(f, "CONTENT\n");
-	fprintf(f, "BEGIN\n");
-	for(i=0; i<size; i++){
-		fprintf(f, "%04x : %04x;\n", i, ROM[i]);
+void print_rom(int* rom, FILE* fh, int size){
+  int i;
+	fprintf(fh, "library ieee;\nuse ieee.std_logic_1164.all;\nuse ieee.numeric_std.all;\n\n");
+	fprintf(fh, "entity rom is\n");
+	fprintf(fh, "  port(\n");
+	fprintf(fh, "    clk : in std_logic;\n");
+	fprintf(fh, "    addra : in std_logic_vector(15 downto 0);\n");
+	fprintf(fh, "    addrb : in std_logic_vector(15 downto 0);\n");
+	fprintf(fh, "    qa : out std_logic_vector(15 downto 0);\n");
+	fprintf(fh, "    qb : out std_logic_vector(15 downto 0)\n");
+	fprintf(fh, "  );\n");
+	fprintf(fh, "end rom;\n\n");
+	fprintf(fh, "architecture rtl of rom is\n");
+	fprintf(fh, "  type rom_mem is array(0 to 65535) of std_logic_vector(15 downto 0);\n");
+	fprintf(fh, "  constant romtable  : rom_mem :=(\n");
+	for(i=0;i<ROM_SIZE-1;i++){
+	  fprintf(fh, "    x\"%04x\",\n", rom[i]);  
 	}
-	fprintf(f, "END;\n");
+	fprintf(fh, "    x\"%04x\"\n", i);
+	fprintf(fh, "  );\n");
+	fprintf(fh, "begin\n");
+	fprintf(fh, "  process(clk)\n");
+	fprintf(fh, "  begin\n");
+	fprintf(fh, "    if(rising_edge(clk)) then\n");
+	fprintf(fh, "      qa <= romtable(to_integer(unsigned(addra)));\n");
+	fprintf(fh, "      qb <= romtable(to_integer(unsigned(addrb)));\n");
+	fprintf(fh, "    end if;\n");
+	fprintf(fh, "  end process;\n");
+	fprintf(fh, "end rtl;\n");
 }
+
+
+
+
+
+
+
+
+
+
+
