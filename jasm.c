@@ -12,18 +12,27 @@ int main(int argc, char* argv[]){
 	int bufferptr = 0;
 	int lineptr = 0;
 	int temp = 0;
-	int opcode = -1;
-	int function = -1;
 	char* buffer;
 	char line[100];
-	char inst[10];
-	char op1[10];
-	char op2[10];
+	Instruction inst;
+	char opcode[10];
+	char rr[10];
+	char rd[10];
 	
 	/* Initialize ROM to 0 */
 	for(temp=0; temp<ROM_SIZE; temp++){
 		ROM[temp] = 0;
 	}
+	
+	/* Initialize instruction fields to -1 */
+	inst.opcode = -1;
+	inst.function = -1;
+	inst.condition = -1;
+	inst.rr = -1;
+	inst.rd = -1;
+	inst.immediate = -1;
+	inst.ioaddr = -1;
+	inst.diraddr = -1;
 	
 	/* Open ROM file for writing */
 	fROM = fopen("rom.vhd", "w");
@@ -65,16 +74,19 @@ int main(int argc, char* argv[]){
 			lineptr = 0;
 			temp = 0;
 			while(line[lineptr] != ' '){
-			  inst[temp] = line[lineptr];
+			  opcode[temp] = line[lineptr];
 			  temp++;
 			  lineptr++;
 			}
-			inst[temp] = 0;
+			opcode[temp] = 0;
 			lineptr++;
-			opcode = decodeinst(inst);
-			function = decodefunc(inst);
+			decodeinst(opcode, &inst);
 			
 			/* Parse operands */
+			
+			/* assemble instruction */
+			
+			/* Reset instruction struct */
 		}
 		
 		/* Generate ROM file */
@@ -116,38 +128,89 @@ void print_rom(int* rom, FILE* fh, int size){
 	fprintf(fh, "end rtl;\n");
 }
 
-int decodeinst(char* inst){
-  int opcode = NAI;
-  if(strcmp(inst, "nop")==0)  opcode = NOP;
-  if(strcmp(inst, "hlt")==0)  opcode = HLT;
-  if(strcmp(inst, "add")==0)  opcode = ADD;
-  if(strcmp(inst, "adc")==0)  opcode = ADC;
-  if(strcmp(inst, "sub")==0)  opcode = SUB;
-  if(strcmp(inst, "sbc")==0)  opcode = SBC;
-  if(strcmp(inst, "adi")==0)  opcode = ADI;
-  if(strcmp(inst, "adci")==0) opcode = ADCI;
-  if(strcmp(inst, "sbi")==0)  opcode = SBI;
-  if(strcmp(inst, "sbci")==0) opcode = SBCI;
-  if(strcmp(inst, "and")==0)  opcode = AND;
-  if(strcmp(inst, "or")==0)   opcode = OR;
-  if(strcmp(inst, "ori")==0)  opcode = ORI;
-  if(strcmp(inst, "eor")==0)  opcode = EOR;
-  if(strcmp(inst, "eori")==0) opcode = EORI;
-  if(strcmp(inst, "com")==0)  opcode = COM;
-  if(strcmp(inst, "neg")==0)  opcdoe = NEG;
-  if(strcmp(inst, "lsl")==0)  opcode = LSL;
-  if(strcmp(inst, "rol")==0)  opcode = ROL;
-  if(strcmp(inst, "lsr")==0)  opcode = LSR;
-  if(strcmp(inst, "ror")==0)  opcode = ROR;
-  if(strcmp(inst, "in")==0)   opcode = IN;
-  if(strcmp(inst, "out")==0)  opcode = OUT;
-  return opcode;
-}
-
-int decodefunc(char* inst){
+void decodeinst(char* opcode, Instruction* inst){
+  /* default values */
+  int op_code = -1;
   int function = -1;
+  int cc = -1;
   
-  return function;
+  if(strcmp(opcode, "nop")==0){
+    op_code = NOP;
+    function = 0;
+  }
+  if(strcmp(opcode, "hlta")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 0;
+  }
+  if(strcmp(opcode, "hlteq")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 1;
+  }
+  if(strcmp(opcode, "hltne")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 2;
+  }
+  if(strcmp(opcode, "hltvs")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 3;
+  }
+  if(strcmp(opcode, "hltvc")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 4;
+  }
+  if(strcmp(opcode, "hltmi")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 5;
+  }
+  if(strcmp(opcode, "hltpl")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 6;
+  }
+  if(strcmp(opcode, "hltcs")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 7;
+  }
+  if(strcmp(opcode, "hltcc")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 8;
+  }
+  if(strcmp(opcode, "hltlt")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 9;
+  }
+  if(strcmp(opcode, "hltge")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 10;
+  }
+  if(strcmp(opcode, "hltsh")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 11;
+  }
+  if(strcmp(opcode, "hltlo")==0){
+    op_code = HLT;
+    function = 1;
+    cc = 12;
+  }
+  if(strcmp(opcode, "add")==0){
+    op_code = ADD;
+    function = 0;
+  }
+  if(strcmp(opcode, "adc")==0){
+    op_code = ADC;
+    function = 1;
+  }
 }
 
 

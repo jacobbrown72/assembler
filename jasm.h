@@ -4,14 +4,26 @@
 /* size of instruction memory */
 #define ROM_SIZE 65536
 
+/* instruction struct definition */
+typedef struct{
+  int opcode;       // Instruction opcode
+  int function;     // Function bit
+  int condition;    // halt/branch condition code
+  int rr;           // Source register
+  int rd;           // Destination register
+  int immediate;    // immediate operand
+  int ioaddr;       // I/O address
+  int diraddr;      // Direct address
+} Instruction;
+
 /* Function header to print out ROM table to a file */
 void print_rom(int* ROM, FILE* f, int size);
 
 /* Function header to determine opcode */
-int decodeinst(char* inst);
-int decodefunc(char* inst);
+void decodeinst(char* opcode, Instruction* inst);
 
 /* opcode definitions */
+#define OPBIT 11
 #define NAI -1
 #define NOP 0
 #define HLT 0
@@ -28,6 +40,7 @@ int decodefunc(char* inst);
 #define ANDI 8
 #define OR 9
 #define ORI 10
+#define EOR 11
 #define EORI 12
 #define COM 13
 #define NEG 13
@@ -55,6 +68,20 @@ int decodefunc(char* inst);
 #define RET 29
 #define OUTI 30
 
-/* bit position */
+/* Condition code definitions */
+#define CCBIT 1
+#define AL 0
+#define EQ 1
+#define NE 2
+#define VS 3
+#define VC 4
+#define MI 5
+#define PL 6
+#define CS 7
+#define CC 8
+#define LT 9
+#define GE 10
+#define SH 11
+#define LO 12
 
 #endif
