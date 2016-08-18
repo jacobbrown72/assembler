@@ -4,6 +4,9 @@
 /* size of instruction memory */
 #define ROM_SIZE 65536
 
+/* Number of allowed labels */
+#define LABELCNT 100
+
 /* instruction struct definition */
 typedef struct{
   int opcode;       // Instruction opcode
@@ -21,6 +24,20 @@ void print_rom(int* ROM, FILE* f, int size);
 
 /* Function header to determine opcode */
 void decodeinst(char* opcode, Instruction* inst);
+
+/* Function header to parse operands */
+void decodeoperand(char* operand, Instruction* inst, int op);
+
+/* Function header to convert array to integer */
+int convinteger(char* array, int length);
+int convhex(char* array, int length);
+
+/* Function to sear labels */
+int findlable(char* label);
+
+/* Label array */
+char* labels[LABELCNT][15];
+int address[LABELCNT];
 
 /* opcode definitions */
 #define OPBIT 11

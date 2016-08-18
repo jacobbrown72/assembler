@@ -1,5 +1,5 @@
-CC=gcc
-CFLAGS=-I.
-
 asmmake: jasm.c
-	$(CC) -ggdb -o jasm jasm.c $(CFLAGS)
+	gcc jasm.c -ggdb -lm -I. -o jasm 
+	
+clean:
+	rm jasm

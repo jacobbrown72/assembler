@@ -1,13 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "jasm.h"
 
 int main(int argc, char* argv[]){
-	/* Variable declaration */
+	/* file pointers */
 	FILE* fASM;
 	FILE* fROM;
-	int ROM[ROM_SIZE];
+	/* rom array */
+	int rom[ROM_SIZE];
 	int size;
 	int bufferptr = 0;
 	int lineptr = 0;
@@ -16,12 +18,12 @@ int main(int argc, char* argv[]){
 	char line[100];
 	Instruction inst;
 	char opcode[10];
-	char rr[10];
-	char rd[10];
+	char opone[10];
+	char optwo[10];
 	
 	/* Initialize ROM to 0 */
 	for(temp=0; temp<ROM_SIZE; temp++){
-		ROM[temp] = 0;
+		rom[temp] = 0;
 	}
 	
 	/* Initialize instruction fields to -1 */
@@ -40,7 +42,7 @@ int main(int argc, char* argv[]){
 	if(argc < 2){
 		/* No ASM file to assemble */
 		printf("No asm file provided, generating empty ROM\n");
-		print_rom(ROM, fROM, ROM_SIZE);
+		print_rom(rom, fROM, ROM_SIZE);
 		printf("ROM generated\n");
 	}
 	else{
@@ -53,36 +55,72 @@ int main(int argc, char* argv[]){
 		rewind(fASM);
 		buffer = malloc((size+1) * sizeof(char));
 		fread(buffer, size, 1, fASM);
-		buffer[size] = 0;
+		buffer[size+1] = 0;
 		
 		/* Close ASM file */
 		fclose(fASM);
 		
+		/* Reset pointers */
+		bufferptr = 0;
+		lineptr = 0;
+		temp = 0;
+		
 		/* Process the file buffer */
 		while(buffer[bufferptr] != 0){
+		  /* parse buffer until first non-whitespace character */
+		  while(buffer[bufferptr] < 33){
+		    bufferptr++;
+		  }
+		  
 			/* Read instruction from file buffer */
 			lineptr = 0;
 			while(buffer[bufferptr] != '\n'){
-			  line[lineptr] = buffer[bufferptr];
-			  lineptr++;
-			  bufferptr++;
+			  line[lineptr++] = buffer[bufferptr++];
 			}
-			line[lineptr] = 0;
 			bufferptr++;
+			line[lineptr] = 0;
 			
 			/* Parse opcode */
 			lineptr = 0;
 			temp = 0;
 			while(line[lineptr] != ' '){
-			  opcode[temp] = line[lineptr];
-			  temp++;
-			  lineptr++;
+			  opcode[temp++] = line[lineptr++];
 			}
-			opcode[temp] = 0;
 			lineptr++;
+			opcode[temp] = 0;
 			decodeinst(opcode, &inst);
 			
-			/* Parse operands */
+			/* parse over whitespace */
+			while(line[lineptr] < 33){
+			  lineptr++;
+			}
+			
+			/* Parse first operand */
+			temp = 0;
+			while(line[lineptr] != ','){
+			  opone[temp++] = line[lineptr++];
+			}
+			lineptr++;
+			opone[temp] = 0;
+			decodeoperand(opone, &inst, 1);
+			
+			/* Parse over whitespace */
+			while(line[lineptr] < 33){
+			  lineptr++;
+			}
+			
+			/* Parse second operand */
+			temp = 0;
+			while(line[lineptr] != 0){
+			  optwo[temp++] = line[lineptr++];
+			}
+			optwo[temp] = 0;
+			lineptr++;
+			decodeoperand(optwo, &inst, 2);
+			
+			printf("Opcode   : %d\n", inst.opcode);
+			printf("Operand 1: %d\n", inst.rd);
+			printf("Operand 2: %d\n", inst.rr);
 			
 			/* assemble instruction */
 			
@@ -126,6 +164,115 @@ void print_rom(int* rom, FILE* fh, int size){
 	fprintf(fh, "    end if;\n");
 	fprintf(fh, "  end process;\n");
 	fprintf(fh, "end rtl;\n");
+}
+
+int findlabel(char* label){
+  int i;
+  int number = 0;
+  for(i=0;i<LABELCNT;i++){
+    if(strcmp(label, labels[i]) == 0){
+      number = address[i];
+    }
+  }
+  return number;
+}
+
+int convinteger(char* array, int length){
+  int number = 0;
+  int i = 0;
+  int power = length - 1;
+  int mult = pow(10, power);
+  while(i<length){
+    number = number + mult*(array[i++]-48);
+    mult = mult / 10;
+  }
+  return number;
+}
+
+int convhex(char* array, int length){
+  int number = 0;
+  int value = 0;
+  int i = 0;
+  int power = length - 1;
+  int mult = pow(16, power);
+  while(i<length){
+    if(array[i] == 'a' || array[i] == 'A'){
+      value = 10;
+    }
+    else if(array[i] == 'b' || array[i] == 'B'){
+      value = 11;
+    }
+    else if(array[i] == 'c' || array[i] == 'C'){
+      value = 12;
+    }
+    else if(array[i] == 'd' || array[i] == 'D'){
+      value = 13;
+    }
+    else if(array[i] == 'e' || array[i] == 'E'){
+      value = 14;
+    }
+    else if(array[i] == 'f' || array[i] == 'F'){
+      value = 15;
+    }
+    else{
+      value = array[i]-48;
+    }
+    i++;
+    number = number + mult*value;
+    mult = mult / 16;
+  }
+}
+
+void decodeoperand(char* operand, Instruction* inst, int op){
+  int temp = 0;
+  int i = 0;
+  int registure = 0;
+  int number = 0;
+  char array[10];
+  char label[20];
+  if(operand[0] == 'r' && (operand[1] >= '0' && operand[1] <= '9')){
+    /* Register */
+    temp = 1;
+    i = 0;
+    while(operand[temp] != 0){
+      array[i++] = operand[temp++];
+    }
+    array[i] = 0;
+    registure = convinteger(array, i);
+  }
+  
+  else if(operand[0] == '0' && operand[1] == 'x'){
+    /* Hex immediate value */
+    temp = 2;
+    i = 0;
+    while(operand[temp] != 0){
+      array[i++] = operand[temp++];
+    }
+    array[i] = 0;
+    number = convhex(array, i);
+  }
+  
+  else if(operand[0] >= '0' && operand[0] <= '9'){
+    /* decimal immediate value */
+    temp = 0;
+    while(operand[temp] != 0){
+      array[i++] = operand[temp++];
+    }
+    array[i] = 0;
+    number = convinteger(array, i);
+  }
+  
+  else if(operand[0] >= 'A'){
+    /* Label */
+    temp = 0;
+    i = 0;
+    while(operand[temp] != 0){
+      label[i++] = operand[temp++];
+    }
+    label[i] = 0;
+    number = findlabel(label);
+  }
+  
 }
 
 void decodeinst(char* opcode, Instruction* inst){
@@ -211,6 +358,208 @@ void decodeinst(char* opcode, Instruction* inst){
     op_code = ADC;
     function = 1;
   }
+  if(strcmp(opcode, "sub")==0){
+    op_code = SUB;
+    function = 0;
+  }
+  if(strcmp(opcode, "sbc")==0){
+    op_code = SBC;
+    function = 1;
+  }
+  if(strcmp(opcode, "adi")==0){
+    op_code = ADI;
+  }
+  if(strcmp(opcode, "adci")==0){
+    op_code = ADCI;
+  }
+  if(strcmp(opcode, "sbi")==0){
+    op_code = SBI;
+  }
+  if(strcmp(opcode, "sbci")==0){
+    op_code = SBCI;
+  }
+  if(strcmp(opcode, "and")==0){
+    op_code = AND;
+    function = 0;
+  }
+  if(strcmp(opcode, "tst")==0){
+    op_code = TST;
+    function = 1;
+  }
+  if(strcmp(opcode, "andi")==0){
+    op_code = ANDI;
+  }
+  if(strcmp(opcode, "or")==0){
+    op_code = OR;
+    function = 0;
+  }
+  if(strcmp(opcode, "ori")==0){
+    op_code = ORI;
+  }
+  if(strcmp(opcode, "eor")==0){
+    op_code = EOR;
+    function = 0;
+  }
+  if(strcmp(opcode, "eori")==0){
+    op_code = EORI;
+  }
+  if(strcmp(opcode, "com")==0){
+    op_code = COM;
+    function = 0;
+  }
+  if(strcmp(opcode, "neg")==0){
+    op_code = NEG;
+    function = 1;
+  }
+  if(strcmp(opcode, "lsl")==0){
+    op_code = LSL;
+    function = 0;
+  }
+  if(strcmp(opcode, "rol")==0){
+    op_code = ROL;
+    function = 1;
+  }
+  if(strcmp(opcode, "lsr")==0){
+    op_code = LSR;
+    function = 0;
+  }
+  if(strcmp(opcode, "ror")==0){
+    op_code = ROR;
+    function = 1;
+  }
+  if(strcmp(opcode, "in")==0){
+    op_code = IN;
+  }
+  if(strcmp(opcode, "out")==0){
+    op_code = OUT;
+  }
+  if(strcmp(opcode, "push")==0){
+    op_code = PUSH;
+    function = 0;
+  }
+  if(strcmp(opcode, "pop")==0){
+    op_code = POP;
+    function = 1;
+  }
+  if(strcmp(opcode, "mov")==0){
+    op_code = MOV;
+    function = 0;
+  }
+  if(strcmp(opcode, "mvw")==0){
+    op_code = MVW;
+    function = 1;
+  }
+  if(strcmp(opcode, "ldi")==0){
+    op_code = LDI;
+  }
+  if(strcmp(opcode, "lds")==0){
+    op_code = LDS;
+    function = 0;
+  }
+  if(strcmp(opcode, "ld")==0){
+    op_code = LD;
+    function = 0;
+  }
+  if(strcmp(opcode, "lpm")==0){
+    op_code = LPM;
+    function = 1;
+  }
+  if(strcmp(opcode, "sts")==0){
+    op_code = STS;
+    function = 0;
+  }
+  if(strcmp(opcode, "st")==0){
+    op_code = ST;
+    function = 0;
+  }
+  if(strcmp(opcode, "cmp")==0){
+    op_code = CMP;
+    function = 0;
+  }
+  if(strcmp(opcode, "cpc")==0){
+    op_code = CPC;
+    function = 1;
+  }
+  if(strcmp(opcode, "cpi")==0){
+    op_code = CPI;
+  }
+  if(strcmp(opcode, "bra")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 0;
+  }
+  if(strcmp(opcode, "breq")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 1;
+  }
+  if(strcmp(opcode, "brne")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 2;
+  }
+  if(strcmp(opcode, "brvs")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 3;
+  }
+  if(strcmp(opcode, "brvc")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 4;
+  }
+  if(strcmp(opcode, "brmi")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 5;
+  }
+  if(strcmp(opcode, "brpl")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 6;
+  }
+  if(strcmp(opcode, "brcs")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 7;
+  }
+  if(strcmp(opcode, "brcc")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 8;
+  }
+  if(strcmp(opcode, "brlt")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 9;
+  }
+  if(strcmp(opcode, "brge")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 10;
+  }
+  if(strcmp(opcode, "brsh")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 11;
+  }
+  if(strcmp(opcode, "brlo")==0){
+    op_code = BRA;
+    function = 0;
+    cc = 12;
+  }
+  if(strcmp(opcode, "call")==0){
+    op_code = CALL;
+    function = 0;
+  }
+  if(strcmp(opcode, "ret")==0){
+    op_code = RET;
+    function = 0;
+  }
+  
+  inst->opcode = op_code;
+  inst->function = function;
+  inst->condition = cc;
 }
 
 
