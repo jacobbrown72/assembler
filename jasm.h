@@ -36,7 +36,7 @@ int convhex(char* array, int length);
 int findlable(char* label);
 
 /* Label array */
-char* labels[LABELCNT][15];
+char* labels[LABELCNT];
 int address[LABELCNT];
 
 /* opcode definitions */
