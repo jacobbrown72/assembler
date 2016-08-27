@@ -36,7 +36,11 @@ int convhex(char* array, int length);
 int findlable(char* label);
 
 /* Label array */
+<<<<<<< HEAD
 char labels[LABELCNT][20];
+=======
+char* labels[LABELCNT];
+>>>>>>> a2dd4bf754047560fe9841e7418e9fa3ff95203b
 int address[LABELCNT];
 
 /* Error codes */
