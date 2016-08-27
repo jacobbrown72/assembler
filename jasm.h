@@ -20,7 +20,7 @@ typedef struct{
 } Instruction;
 
 /* Function header to print out ROM table to a file */
-void print_rom(int* ROM, FILE* f, int size);
+void printrom(int* ROM, FILE* f, int size);
 
 /* Function header to determine opcode */
 void decodeinst(char* opcode, Instruction* inst);
@@ -36,8 +36,11 @@ int convhex(char* array, int length);
 int findlable(char* label);
 
 /* Label array */
-char* labels[LABELCNT][15];
+char labels[LABELCNT][20];
 int address[LABELCNT];
+
+/* Error codes */
+#define OK 0
 
 /* opcode definitions */
 #define OPBIT 11

@@ -20,21 +20,13 @@ int main(int argc, char* argv[]){
 	char opcode[10];
 	char opone[10];
 	char optwo[10];
+	int error;
+	int linenmb;
 	
 	/* Initialize ROM to 0 */
 	for(temp=0; temp<ROM_SIZE; temp++){
 		rom[temp] = 0;
 	}
-	
-	/* Initialize instruction fields to -1 */
-	inst.opcode = -1;
-	inst.function = -1;
-	inst.condition = -1;
-	inst.rr = -1;
-	inst.rd = -1;
-	inst.immediate = -1;
-	inst.ioaddr = -1;
-	inst.diraddr = -1;
 	
 	/* Open ROM file for writing */
 	fROM = fopen("rom.vhd", "w");
@@ -42,7 +34,7 @@ int main(int argc, char* argv[]){
 	if(argc < 2){
 		/* No ASM file to assemble */
 		printf("No asm file provided, generating empty ROM\n");
-		print_rom(rom, fROM, ROM_SIZE);
+		printrom(rom, fROM, ROM_SIZE);
 		printf("ROM generated\n");
 	}
 	else{
@@ -60,19 +52,21 @@ int main(int argc, char* argv[]){
 		/* Close ASM file */
 		fclose(fASM);
 		
-		/* Reset pointers */
+		/* initialize array pointers */
 		bufferptr = 0;
 		lineptr = 0;
 		temp = 0;
+		error = 0; 
+		linenmb = 1;
 		
 		/* Process the file buffer */
 		while(buffer[bufferptr] != 0){
-		  /* parse buffer until first non-whitespace character */
-		  while(buffer[bufferptr] < 33){
-		    bufferptr++;
-		  }
+			/* parse buffer until first non-whitespace character */
+			while(buffer[bufferptr] < 33){
+				bufferptr++;
+			}
 		  
-			/* Read instruction from file buffer */
+			/* Read line from file buffer */
 			lineptr = 0;
 			while(buffer[bufferptr] != '\n'){
 			  line[lineptr++] = buffer[bufferptr++];
@@ -135,8 +129,8 @@ int main(int argc, char* argv[]){
 	fclose(fROM);
 }
 
-void print_rom(int* rom, FILE* fh, int size){
-  int i;
+void printrom(int* rom, FILE* fh, int size){
+	int i;
 	fprintf(fh, "library ieee;\nuse ieee.std_logic_1164.all;\nuse ieee.numeric_std.all;\n\n");
 	fprintf(fh, "entity rom is\n");
 	fprintf(fh, "  port(\n");
@@ -275,107 +269,108 @@ void decodeoperand(char* operand, Instruction* inst, int op){
   
 }
 
-void decodeinst(char* opcode, Instruction* inst){
+int decodeinst(char* opcode, Instruction* inst){
   /* default values */
-  int op_code = -1;
-  int function = -1;
-  int cc = -1;
+  int op_code = 0;
+  int function = 0;
+  int cc = 0;
+  int error = OK;
   
   if(strcmp(opcode, "nop")==0){
     op_code = NOP;
     function = 0;
   }
-  if(strcmp(opcode, "hlta")==0){
+  else if(strcmp(opcode, "hlta")==0){
     op_code = HLT;
     function = 1;
     cc = 0;
   }
-  if(strcmp(opcode, "hlteq")==0){
+  else if(strcmp(opcode, "hlteq")==0){
     op_code = HLT;
     function = 1;
     cc = 1;
   }
-  if(strcmp(opcode, "hltne")==0){
+  else if(strcmp(opcode, "hltne")==0){
     op_code = HLT;
     function = 1;
     cc = 2;
   }
-  if(strcmp(opcode, "hltvs")==0){
+  else if(strcmp(opcode, "hltvs")==0){
     op_code = HLT;
     function = 1;
     cc = 3;
   }
-  if(strcmp(opcode, "hltvc")==0){
+  else if(strcmp(opcode, "hltvc")==0){
     op_code = HLT;
     function = 1;
     cc = 4;
   }
-  if(strcmp(opcode, "hltmi")==0){
+  else if(strcmp(opcode, "hltmi")==0){
     op_code = HLT;
     function = 1;
     cc = 5;
   }
-  if(strcmp(opcode, "hltpl")==0){
+  else if(strcmp(opcode, "hltpl")==0){
     op_code = HLT;
     function = 1;
     cc = 6;
   }
-  if(strcmp(opcode, "hltcs")==0){
+  else if(strcmp(opcode, "hltcs")==0){
     op_code = HLT;
     function = 1;
     cc = 7;
   }
-  if(strcmp(opcode, "hltcc")==0){
+  else if(strcmp(opcode, "hltcc")==0){
     op_code = HLT;
     function = 1;
     cc = 8;
   }
-  if(strcmp(opcode, "hltlt")==0){
+  else if(strcmp(opcode, "hltlt")==0){
     op_code = HLT;
     function = 1;
     cc = 9;
   }
-  if(strcmp(opcode, "hltge")==0){
+  else if(strcmp(opcode, "hltge")==0){
     op_code = HLT;
     function = 1;
     cc = 10;
   }
-  if(strcmp(opcode, "hltsh")==0){
+  else if(strcmp(opcode, "hltsh")==0){
     op_code = HLT;
     function = 1;
     cc = 11;
   }
-  if(strcmp(opcode, "hltlo")==0){
+  else if(strcmp(opcode, "hltlo")==0){
     op_code = HLT;
     function = 1;
     cc = 12;
   }
-  if(strcmp(opcode, "add")==0){
+  else if(strcmp(opcode, "add")==0){
     op_code = ADD;
     function = 0;
   }
-  if(strcmp(opcode, "adc")==0){
+  else if(strcmp(opcode, "adc")==0){
     op_code = ADC;
     function = 1;
   }
-  if(strcmp(opcode, "sub")==0){
+  else if(strcmp(opcode, "sub")==0){
     op_code = SUB;
     function = 0;
   }
-  if(strcmp(opcode, "sbc")==0){
+  else if(strcmp(opcode, "sbc")==0){
     op_code = SBC;
     function = 1;
   }
-  if(strcmp(opcode, "adi")==0){
+  else if(strcmp(opcode, "adi")==0){
     op_code = ADI;
   }
-  if(strcmp(opcode, "adci")==0){
+  else if(strcmp(opcode, "adci")==0){
     op_code = ADCI;
   }
-  if(strcmp(opcode, "sbi")==0){
+  else if(strcmp(opcode, "sbi")==0){
     op_code = SBI;
   }
-  if(strcmp(opcode, "sbci")==0){
+  else if(strcmp(opcode, "sbci")==0){
     op_code = SBCI;
   }
   if(strcmp(opcode, "and")==0){
@@ -560,6 +555,8 @@ void decodeinst(char* opcode, Instruction* inst){
   inst->opcode = op_code;
   inst->function = function;
   inst->condition = cc;
+  
+  return error;
 }
 
 
